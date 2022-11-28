@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/erikwehrmann/tinyapp/issues"
   },
-  "homepage": "https://github.com/erikwehrmann/tinyapp#readme"
+  "homepage": "https://github.com/erikwehrmann/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
