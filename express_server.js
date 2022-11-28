@@ -9,8 +9,30 @@ const urlDatabase = {
   "9sm5xk": "http://www.google.com"
 };
 
+
+const getTiny = function generateRandomString () {
+  let code = '';
+  const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  for (let i = 0; i < 6; i++) {
+    code += characters[Math.floor(Math.random() * 62)];
+  }
+  for (const url in urlDatabase) {
+    if (code === url) {
+      return false;
+    }
+  }
+  return code;
+};
+
+app.use(express.urlencoded({ extended: true}));
+
 app.get('/', (req, res) => {
   res.send('Hello!');
+});
+
+app.post('/urls', (req, res) => {
+  console.log(req.body);
+  res.send('Ok');
 });
 
 app.get('/urls', (req, res) => {
@@ -20,6 +42,10 @@ app.get('/urls', (req, res) => {
 
 app.get('/urls.json', (req, res) => {
   res.json(urlDatabase);
+});
+
+app.get('/urls/new', (req, res) => {
+  res.render('urls_new');
 });
 
 app.get('/urls/:id', (req, res) => {
