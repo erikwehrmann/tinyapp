@@ -14,7 +14,9 @@ const checkUniqueness = function (code){
   for (const url in urlDatabase) {
     if (code === url) {
       code += characters[Math.floor(Math.random() * 62)];
-      code.split('').splice(0, 1).join('');
+      code = code.split('');
+      code[5] = '';
+      code = code.join('');
       return checkUniqueness(code);
     }
   }
@@ -39,7 +41,9 @@ app.get('/', (req, res) => {
 
 app.post('/urls', (req, res) => {
   console.log(req.body);
-  res.send('Ok');
+  let tinyURL = getTiny();
+  urlDatabase[tinyURL] = req.body.longURL;
+  res.redirect(`/urls/${tinyURL}`);
 });
 
 app.get('/urls', (req, res) => {
@@ -58,6 +62,11 @@ app.get('/urls/new', (req, res) => {
 app.get('/urls/:id', (req, res) => {
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]};
   res.render('urls_show', templateVars);
+});
+
+app.get('/u/:id', (req, res) => {
+  const longURL = urlDatabase[req.params.id]
+  res.redirect(longURL);
 });
 
 app.get('/hello', (req, res) => {
