@@ -17,6 +17,35 @@
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
+      <% if (!username) { %>
+        <form method="POST" action="/login" style=" margin-left: auto">
+          <div style="display: flex; align-items: flex-end">
+            <input
+              class="form-control"
+              type="text"
+              name="username"
+              placeholder="Username"
+              style="width: 300px; margin-right: .5em"
+            />
+            <button
+              type="submit"
+              class="btn"
+              style="border-color: rgb(69, 69, 69); color: rgb(69, 69, 69)"
+            >Login</button>
+          </div>
+        </form>
+      <% } else if (username) { %>
+        <form method="POST" action="/logout" style="margin-left: auto">
+          <div style="display: flex; align-items: flex-end">
+            <h6 style="color: rgb(70, 70, 70); margin-right: 1em">Logged in as: <%= username %></h6>
+            <button
+              type="submit"
+              class="btn"
+              style="border-color: rgb(69, 69, 69); color: rgb(69, 69, 69)"
+            >Logout</button>
+          </div>
+        </form>
+      <% } %>
     </div>
   </nav>
 </header>
