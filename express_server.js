@@ -40,7 +40,6 @@ app.get('/', (req, res) => {
 });
 
 app.post('/urls', (req, res) => {
-  console.log(req.body);
   let tinyURL = getTiny();
   urlDatabase[tinyURL] = req.body.longURL;
   res.redirect(`/urls/${tinyURL}`);
@@ -60,8 +59,14 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.get('/urls/:id', (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]};
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], newLongURL: ''};
   res.render('urls_show', templateVars);
+});
+
+app.post('/urls/:id/edit', (req, res) => {
+  newLongURL = req.body.newLongURL;
+  urlDatabase[req.params.id] = newLongURL;
+  res.redirect('/urls');
 });
 
 app.post('/urls/:id/delete', (req, res) => {
@@ -75,7 +80,7 @@ app.get('/u/:id', (req, res) => {
 });
 
 app.get('/hello', (req, res) => {
-  res.send('<html><body>Hello <b>World</></html>\n');
+  res.send('<html><body>Hello World!<b>World</></html>\n');
 });
 
 app.listen(PORT, () => {
