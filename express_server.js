@@ -11,7 +11,20 @@ const urlDatabase = {
   "9sm5xk": "http://www.google.com"
 };
 
-const checkUniqueness = function (code){
+const users = {
+  erikw1: {
+    id: "erikw1",
+    email: "erik.wehrmann@gmail.com",
+    password: "bluepaintcan1"
+  },
+  jwerh2: {
+    id: "jwerh2",
+    email: "jeff@jeffmail.com",
+    password: "jeffspassword"
+  }
+};
+
+const checkUniqueness = function (code) {
   const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   for (const url in urlDatabase) {
     if (code === url) {
@@ -35,25 +48,49 @@ const getTiny = function generateRandomString () {
   return code;
 };
 
+const checkEmail = function (email) {
+  const array = Object.values(users);
+  const emails = [];
+  for (const item of array) {
+    emails.push(item.email);
+  }
+  for (const element of emails) {
+    if (email === element) {
+      return false;
+    }
+  }
+  return true;
+}
+
 app.use(express.urlencoded({ extended: true}));
 
 app.get('/', (req, res) => {
   res.send('Hello!');
 });
 
-app.post('/urls', (req, res) => {
-  let tinyURL = getTiny();
-  urlDatabase[tinyURL] = req.body.longURL;
-  res.redirect(`/urls/${tinyURL}`);
+app.get('/register', (req, res) => {
+  res.render('registration');
 });
 
-app.get('/urls', (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"]};
-  res.render('urls_index', templateVars);
+app.post('/register', (req, res) => {
+  if (req.body.email && req.body.password && checkEmail(req.body.email)) {
+  const id = getTiny();
+  res.cookie('id', id);
+  res.cookie('email', req.body.email);
+  res.cookie('password', req.body.password);
+  users[id] = {
+    id,
+    email: req.body.email,
+    password: req.body.password
+  };
+  res.redirect('/urls');
+  } else {
+    res.send('Invalid Credentials')
+  }
 });
 
-app.get('/urls.json', (req, res) => {
-  res.json(urlDatabase);
+app.get('/login', (req, res) => {
+  res.render('login');
 });
 
 app.post('/login', (req, res) => {
@@ -66,13 +103,28 @@ app.post('/logout', (req, res) => {
   res.redirect('/urls');
 });
 
+app.post('/urls', (req, res) => {
+  let tinyURL = getTiny();
+  urlDatabase[tinyURL] = req.body.longURL;
+  res.redirect(`/urls/${tinyURL}`);
+});
+
+app.get('/urls', (req, res) => {
+  const templateVars = { urls: urlDatabase, user: users[req.cookies.id] };
+  res.render('urls_index', templateVars);
+});
+
+app.get('/urls.json', (req, res) => {
+  res.json(urlDatabase);
+});
+
 app.get('/urls/new', (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const templateVars = { user: users[req.cookies.id] };
   res.render('urls_new', templateVars);
 });
 
 app.get('/urls/:id', (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], newLongURL: '', username: req.cookies["username"] };
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], newLongURL: '', user: users[req.cookies.id] };
   res.render('urls_show', templateVars);
 });
 
