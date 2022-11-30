@@ -60,9 +60,9 @@ const checkEmail = function (email) {
     }
   }
   return true;
-}
+};
 
-app.use(express.urlencoded({ extended: true}));
+app.use(express.urlencoded({ extended: true} ));
 
 app.get('/', (req, res) => {
   res.send('Hello!');
@@ -94,13 +94,23 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect('/urls');
+  const array = Object.values(users)
+  for (const user of array) {
+    if (user.email === req.body.email && user.password === req.body.password) {
+      res.cookie('id', user.id);
+      res.cookie('email', user.email);
+      res.cookie('password', user.password);
+      res.redirect('/urls');
+    }
+  }
+  res.send("Invalied Credentials");
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
-  res.redirect('/urls');
+  res.clearCookie('id');
+  res.clearCookie('email');
+  res.clearCookie('password');
+  res.redirect('/login');
 });
 
 app.post('/urls', (req, res) => {
