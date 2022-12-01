@@ -7,8 +7,14 @@ const PORT = 8080;
 app.set('view engine', 'ejs');
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xk": "http://www.google.com"
+  "b2xVn2": {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "jwerh2"
+  },
+  "9sm5xk": {
+    longURL: "http://www.google.com",
+    userID: "erikw1"
+  }
 };
 
 const users = {
@@ -62,13 +68,26 @@ const checkEmail = function (email) {
   return true;
 };
 
+const urlsForUser = function (id) {
+  const usersURL = {};
+  for (const url in urlDatabase) {
+    if (urlDatabase[url]['userID'] === id) {
+      usersURL[url] = urlDatabase[url];
+    }
+  }
+  return usersURL;
+};
+
 app.use(express.urlencoded({ extended: true} ));
 
 app.get('/', (req, res) => {
-  res.send('Hello!');
+  res.redirect('/login');
 });
 
 app.get('/register', (req, res) => {
+  if (req.cookies.id) {
+    res.redirect('/urls');
+  }
   res.render('registration');
 });
 
@@ -90,6 +109,9 @@ app.post('/register', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
+  if (req.cookies.id) {
+    res.redirect('/urls');
+  }
   res.render('login');
 });
 
@@ -103,7 +125,8 @@ app.post('/login', (req, res) => {
       res.redirect('/urls');
     }
   }
-  res.send("Invalied Credentials");
+  res.statusCode = 403;
+  res.send('Invalied Credentials');
 });
 
 app.post('/logout', (req, res) => {
@@ -114,13 +137,23 @@ app.post('/logout', (req, res) => {
 });
 
 app.post('/urls', (req, res) => {
+  if (!req.cookies.id) {
+    res.send('Cannot perform this action. Please Login');
+  }
   let tinyURL = getTiny();
-  urlDatabase[tinyURL] = req.body.longURL;
+  urlDatabase[tinyURL] = {
+    longURL: req.body.longURL,
+    userID: req.cookies.id
+  }
   res.redirect(`/urls/${tinyURL}`);
 });
 
 app.get('/urls', (req, res) => {
-  const templateVars = { urls: urlDatabase, user: users[req.cookies.id] };
+  if (!req.cookies.id) {
+    res.send('Cannot access this page. Please Login');
+  }
+  const validURLs = urlsForUser(req.cookies.id);
+  const templateVars = { urls: validURLs, user: users[req.cookies.id] };
   res.render('urls_index', templateVars);
 });
 
@@ -129,29 +162,59 @@ app.get('/urls.json', (req, res) => {
 });
 
 app.get('/urls/new', (req, res) => {
+  if (!req.cookies.id) {
+    res.redirect('/login');
+  }
   const templateVars = { user: users[req.cookies.id] };
   res.render('urls_new', templateVars);
 });
 
 app.get('/urls/:id', (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], newLongURL: '', user: users[req.cookies.id] };
-  res.render('urls_show', templateVars);
+  for (const id in urlDatabase) {
+    if (id === req.params.id) {
+      if (!req.cookies.id) {
+        res.send('Cannot access this page. Please Login')
+      }
+      const validURLs = urlsForUser(req.cookies.id);
+      for (const id in urlsForUser) {
+        if (id === req.params.id) {
+          const templateVars = { id: req.params.id, longURL: validURLs[req.params.id]['longURL'], newLongURL: '', user: users[req.cookies.id] };
+          res.render('urls_show', templateVars);
+        } 
+      }
+
+      if (req.cookies.id) {
+        res.send("Invalid credentials to access this page.")
+      }
+    }
+  res.send('URL does not exist.')   
+  }
 });
 
 app.post('/urls/:id/edit', (req, res) => {
-  newLongURL = req.body.newLongURL;
-  urlDatabase[req.params.id] = newLongURL;
-  res.redirect('/urls');
+  const validURLs = urlsForUser(req.cookies.id);
+  if (validURLs[req.params.id] === urlDatabase[req.params.id]) {
+    newLongURL = req.body.newLongURL;
+    urlDatabase[req.params.id]['longURL'] = newLongURL;
+    res.redirect('/urls');
+  } else {
+    res.send('Invalid credition for this action.')
+  }
 });
 
 app.post('/urls/:id/delete', (req, res) => {
-  delete urlDatabase[req.params.id];
-  res.redirect('/urls');
+  const validURLs = urlsForUser(req.cookies.id);
+  if (validURLs[req.params.id] === urlDatabase[req.params.id]) {
+    delete urlDatabase[req.params.id];
+    res.redirect('/urls');
+  } else {
+    res.send('Invalid credition for this action.')
+  }
 });
 
 app.get('/u/:id', (req, res) => {
-  const longURL = urlDatabase[req.params.id]
-  res.redirect(longURL);
+  const URL = urlDatabase[req.params.id]['longURL']
+  res.redirect(URL);
 });
 
 app.get('/hello', (req, res) => {
