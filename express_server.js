@@ -3,9 +3,10 @@ const app = express();
 const cookieSession = require('cookie-session');
 app.use(cookieSession({
   name: 'session',
-  keys: ['key1', 'key2']
+  keys: ['uBjq2k4', 'k23is3N']
 }));
 const bcrypt = require('bcryptjs');
+const { getTiny, urlsForUser, getUserByEmail } = require('./helpers')
 const PORT = 8080;
 
 app.use(express.urlencoded({ extended: true} ));
@@ -15,54 +16,6 @@ app.set('view engine', 'ejs');
 const urlDatabase = {};
 
 const users = {};
-
-const checkUniqueness = function (code) {
-  const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  for (const url in urlDatabase) {
-    if (code === url) {
-      code += characters[Math.floor(Math.random() * 62)];
-      code = code.split('');
-      code[5] = '';
-      code = code.join('');
-      return checkUniqueness(code);
-    }
-  }
-  return code;
-};
-
-const getTiny = function generateRandomString () {
-  let code = '';
-  const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  for (let i = 0; i < 6; i++) {
-    code += characters[Math.floor(Math.random() * 62)];
-  }
-  code = checkUniqueness(code);
-  return code;
-};
-
-const checkEmail = function (email) {
-  const array = Object.values(users);
-  const emails = [];
-  for (const item of array) {
-    emails.push(item.email);
-  }
-  for (const element of emails) {
-    if (email === element) {
-      return false;
-    }
-  }
-  return true;
-};
-
-const urlsForUser = function (id) {
-  const usersURL = {};
-  for (const url in urlDatabase) {
-    if (urlDatabase[url]['userID'] === id) {
-      usersURL[url] = urlDatabase[url];
-    }
-  }
-  return usersURL;
-};
 
 app.get('/', (req, res) => {
   res.redirect('/login');
@@ -76,8 +29,8 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', (req, res) => {
-  if (req.body.email && req.body.password && checkEmail(req.body.email)) {
-  const id = getTiny();
+  if (req.body.email && req.body.password && !getUserByEmail(req.body.email, users)) {
+  const id = getTiny(users);
   const hashedPassword = bcrypt.hashSync(req.body.password, 10);
   req.session.user_id = id;
   users[id] = {
@@ -99,12 +52,10 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const array = Object.values(users)
-  for (const user of array) {
-    if (user.email === req.body.email && bcrypt.compareSync(req.body.password, user.password)) {
-      req.session.user_id = user.id;
-      res.redirect('/urls');
-    }
+  const user = getUserByEmail(req.body.email, users)
+  if (user && bcrypt.compareSync(req.body.password, users[user].password)) {
+    req.session.user_id = users[user].id;
+    res.redirect('/urls');
   }
   res.statusCode = 403;
   res.send('Invalied Credentials');
@@ -119,7 +70,7 @@ app.post('/urls', (req, res) => {
   if (!req.session.user_id) {
     res.send('Cannot perform this action. Please Login');
   }
-  let tinyURL = getTiny();
+  let tinyURL = getTiny(urlDatabase);
   urlDatabase[tinyURL] = {
     longURL: req.body.longURL,
     userID: req.session.user_id
@@ -131,7 +82,7 @@ app.get('/urls', (req, res) => {
   if (!req.session.user_id) {
     res.send('Cannot access this page. Please Login');
   }
-  const validURLs = urlsForUser(req.session.user_id);
+  const validURLs = urlsForUser(req.session.user_id, urlDatabase);
   const templateVars = { urls: validURLs, user: users[req.session.user_id] };
   res.render('urls_index', templateVars);
 });
@@ -162,7 +113,7 @@ app.get('/urls/:id', (req, res) => {
 });
 
 app.post('/urls/:id/edit', (req, res) => {
-  const validURLs = urlsForUser(req.session.user_id);
+  const validURLs = urlsForUser(req.session.user_id, urlDatabase);
   if (validURLs[req.params.id] === urlDatabase[req.params.id]) {
     newLongURL = req.body.newLongURL;
     urlDatabase[req.params.id]['longURL'] = newLongURL;
@@ -173,7 +124,7 @@ app.post('/urls/:id/edit', (req, res) => {
 });
 
 app.post('/urls/:id/delete', (req, res) => {
-  const validURLs = urlsForUser(req.session.user_id);
+  const validURLs = urlsForUser(req.session.user_id, urlDatabase);
   if (validURLs[req.params.id] === urlDatabase[req.params.id]) {
     delete urlDatabase[req.params.id];
     res.redirect('/urls');
