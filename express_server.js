@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 app.set('view engine', 'ejs');
-app.use(express.urlencoded({ extended: true} ));
+app.use(express.urlencoded({ extended: true}));
 const methodOverride = require('method-override');
 app.use(methodOverride('_method'));
 const cookies = require('cookie-parser');
@@ -12,7 +12,7 @@ app.use(cookieSession({
   keys: ['uBjq2k4', 'k23is3N']
 }));
 const bcrypt = require('bcryptjs');
-const { getTiny, urlsForUser, getUserByEmail } = require('./helpers')
+const { getTiny, urlsForUser, getUserByEmail } = require('./helpers');
 const PORT = 8080;
 const urlDatabase = {};
 const users = {};
@@ -33,17 +33,17 @@ app.get('/register', (req, res) => {
 
 app.post('/register', (req, res) => {
   if (req.body.email && req.body.password && !getUserByEmail(req.body.email, users)) {
-  const id = getTiny(users);
-  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-  req.session.user_id = id;
-  users[id] = {
-    id,
-    email: req.body.email,
-    password: hashedPassword
-  };
-  res.redirect('/urls');
+    const id = getTiny(users);
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+    req.session.user_id = id;
+    users[id] = {
+      id,
+      email: req.body.email,
+      password: hashedPassword
+    };
+    res.redirect('/urls');
   } else {
-    res.send('Invalid Credentials')
+    res.send('Invalid Credentials');
   }
 });
 
@@ -55,7 +55,7 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const user = getUserByEmail(req.body.email, users)
+  const user = getUserByEmail(req.body.email, users);
   if (user && bcrypt.compareSync(req.body.password, users[user].password)) {
     req.session.user_id = users[user].id;
     res.redirect('/urls');
@@ -80,7 +80,7 @@ app.post('/urls', (req, res) => {
     dateCreated: new Date().toUTCString(),
     views: 0,
     uniqueViews: 0
-  }
+  };
   res.redirect(`/urls/${tinyURL}`);
 });
 
@@ -107,8 +107,8 @@ app.get('/urls/new', (req, res) => {
 
 app.get('/urls/:id', (req, res) => {
   if (!req.session.user_id) {
-    res.send('Cannot access this page. Please Login')
-  };
+    res.send('Cannot access this page. Please Login');
+  }
   for (const item in urlDatabase) {
     if (urlDatabase[item]['userID'] === req.session.user_id) {
       const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]['longURL'], newLongURL: '', user: users[req.session.user_id] };
@@ -120,11 +120,11 @@ app.get('/urls/:id', (req, res) => {
 
 app.put('/urls/:id', (req, res) => {
   if (urlDatabase[req.params.id].userID === users[req.session.user_id].id) {
-    newLongURL = req.body.newLongURL;
+    const newLongURL = req.body.newLongURL;
     urlDatabase[req.params.id]['longURL'] = newLongURL;
     res.redirect('/urls');
   } else {
-    res.send('Invalid creditials for this action.')
+    res.send('Invalid creditials for this action.');
   }
 });
 
@@ -133,7 +133,7 @@ app.delete('/urls/:id', (req, res) => {
     delete urlDatabase[req.params.id];
     res.redirect('/urls');
   } else {
-    res.send('Invalid creditials for this action.')
+    res.send('Invalid creditials for this action.');
   }
 });
 
@@ -143,7 +143,7 @@ app.get('/u/:id', (req, res) => {
     if (!req.cookies.viewer) {
       res.cookie('viewer', getTiny());
       urlDatabase[req.params.id]['uniqueViews']++;
-    };
+    }
     const URL = urlDatabase[req.params.id]['longURL'];
     res.redirect(URL);
   } else {
