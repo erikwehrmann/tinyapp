@@ -1,7 +1,11 @@
 const express = require('express');
 const app = express();
+app.set('view engine', 'ejs');
+app.use(express.urlencoded({ extended: true} ));
 const methodOverride = require('method-override');
 app.use(methodOverride('_method'));
+const cookies = require('cookie-parser');
+app.use(cookies());
 const cookieSession = require('cookie-session');
 app.use(cookieSession({
   name: 'session',
@@ -10,13 +14,7 @@ app.use(cookieSession({
 const bcrypt = require('bcryptjs');
 const { getTiny, urlsForUser, getUserByEmail } = require('./helpers')
 const PORT = 8080;
-
-app.use(express.urlencoded({ extended: true} ));
-
-app.set('view engine', 'ejs');
-
 const urlDatabase = {};
-
 const users = {};
 
 app.get('/', (req, res) => {
@@ -78,7 +76,10 @@ app.post('/urls', (req, res) => {
   let tinyURL = getTiny(urlDatabase);
   urlDatabase[tinyURL] = {
     longURL: req.body.longURL,
-    userID: req.session.user_id
+    userID: req.session.user_id,
+    dateCreated: new Date().toUTCString(),
+    views: 0,
+    uniqueViews: 0
   }
   res.redirect(`/urls/${tinyURL}`);
 });
@@ -138,7 +139,12 @@ app.delete('/urls/:id', (req, res) => {
 
 app.get('/u/:id', (req, res) => {
   if (urlDatabase[req.params.id]) {
-    const URL = urlDatabase[req.params.id]['longURL']
+    urlDatabase[req.params.id]['views']++;
+    if (!req.cookies.viewer) {
+      res.cookie('viewer', getTiny());
+      urlDatabase[req.params.id]['uniqueViews']++;
+    };
+    const URL = urlDatabase[req.params.id]['longURL'];
     res.redirect(URL);
   } else {
     res.send('Invalid URL');
