@@ -2,33 +2,14 @@ const express = require('express');
 const app = express();
 const cookies = require('cookie-parser');
 app.use(cookies());
+const bcrypt = require('bcryptjs');
 const PORT = 8080;
 
 app.set('view engine', 'ejs');
 
-const urlDatabase = {
-  "b2xVn2": {
-    longURL: "http://www.lighthouselabs.ca",
-    userID: "jwerh2"
-  },
-  "9sm5xk": {
-    longURL: "http://www.google.com",
-    userID: "erikw1"
-  }
-};
+const urlDatabase = {};
 
-const users = {
-  erikw1: {
-    id: "erikw1",
-    email: "erik.wehrmann@gmail.com",
-    password: "bluepaintcan1"
-  },
-  jwerh2: {
-    id: "jwerh2",
-    email: "jeff@jeffmail.com",
-    password: "jeffspassword"
-  }
-};
+const users = {};
 
 const checkUniqueness = function (code) {
   const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -94,13 +75,14 @@ app.get('/register', (req, res) => {
 app.post('/register', (req, res) => {
   if (req.body.email && req.body.password && checkEmail(req.body.email)) {
   const id = getTiny();
+  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
   res.cookie('id', id);
   res.cookie('email', req.body.email);
-  res.cookie('password', req.body.password);
+  res.cookie('password', hashedPassword);
   users[id] = {
     id,
     email: req.body.email,
-    password: req.body.password
+    password: hashedPassword
   };
   res.redirect('/urls');
   } else {
@@ -118,7 +100,7 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
   const array = Object.values(users)
   for (const user of array) {
-    if (user.email === req.body.email && user.password === req.body.password) {
+    if (user.email === req.body.email && bcrypt.compareSync(req.body.password, user.password)) {
       res.cookie('id', user.id);
       res.cookie('email', user.email);
       res.cookie('password', user.password);
@@ -170,25 +152,16 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.get('/urls/:id', (req, res) => {
-  for (const id in urlDatabase) {
-    if (id === req.params.id) {
-      if (!req.cookies.id) {
-        res.send('Cannot access this page. Please Login')
-      }
-      const validURLs = urlsForUser(req.cookies.id);
-      for (const id in urlsForUser) {
-        if (id === req.params.id) {
-          const templateVars = { id: req.params.id, longURL: validURLs[req.params.id]['longURL'], newLongURL: '', user: users[req.cookies.id] };
-          res.render('urls_show', templateVars);
-        } 
-      }
-
-      if (req.cookies.id) {
-        res.send("Invalid credentials to access this page.")
-      }
+  if (!req.cookies.id) {
+    res.send('Cannot access this page. Please Login')
+  };
+  for (const item in urlDatabase) {
+    if (urlDatabase[item]['userID'] === req.cookies.id) {
+      const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]['longURL'], newLongURL: '', user: users[req.cookies.id] };
+      res.render('urls_show', templateVars);
     }
-  res.send('URL does not exist.')   
   }
+  res.send('Unable to access URL');
 });
 
 app.post('/urls/:id/edit', (req, res) => {
