@@ -40,9 +40,9 @@
                   class="btn btn-primary"
                   >Edit</button></td>
               </form>
-              <form method="POST" action="/urls/<%= id %>/delete">
+              <form method="POST" action="/urls/<%= id %>?_method=DELETE">
                 <td><button
-                  type="redirect"
+                  type="submit"
                   style="background-color: #fff; border-color: #f00; color: #f00;"
                   class="btn btn-secondary"
                   >Delete</button></td>

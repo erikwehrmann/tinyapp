@@ -1,5 +1,7 @@
 const express = require('express');
 const app = express();
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
 const cookieSession = require('cookie-session');
 app.use(cookieSession({
   name: 'session',
@@ -112,9 +114,8 @@ app.get('/urls/:id', (req, res) => {
   res.send('Unable to access URL');
 });
 
-app.post('/urls/:id/edit', (req, res) => {
-  const validURLs = urlsForUser(req.session.user_id, urlDatabase);
-  if (validURLs[req.params.id] === urlDatabase[req.params.id]) {
+app.put('/urls/:id', (req, res) => {
+  if (urlDatabase[req.params.id].userID === users[req.session.user_id].id) {
     newLongURL = req.body.newLongURL;
     urlDatabase[req.params.id]['longURL'] = newLongURL;
     res.redirect('/urls');
@@ -123,9 +124,8 @@ app.post('/urls/:id/edit', (req, res) => {
   }
 });
 
-app.post('/urls/:id/delete', (req, res) => {
-  const validURLs = urlsForUser(req.session.user_id, urlDatabase);
-  if (validURLs[req.params.id] === urlDatabase[req.params.id]) {
+app.delete('/urls/:id', (req, res) => {
+  if (urlDatabase[req.params.id].userID === users[req.session.user_id].id) {
     delete urlDatabase[req.params.id];
     res.redirect('/urls');
   } else {

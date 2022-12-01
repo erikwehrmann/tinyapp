@@ -41,4 +41,4 @@ const getUserByEmail = function(email, database) {
   }
 }
 
-module.exports = { getTiny, checkEmail, urlsForUser, getUserByEmail };
+module.exports = { getTiny, urlsForUser, getUserByEmail };
