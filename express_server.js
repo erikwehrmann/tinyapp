@@ -20,6 +20,9 @@ const urlDatabase = {};
 const users = {};
 
 app.get('/', (req, res) => {
+  if (req.session.user_id) {
+    res.redirect('/urls');
+  }
   res.redirect('/login');
 });
 
@@ -120,7 +123,7 @@ app.put('/urls/:id', (req, res) => {
     urlDatabase[req.params.id]['longURL'] = newLongURL;
     res.redirect('/urls');
   } else {
-    res.send('Invalid credition for this action.')
+    res.send('Invalid creditials for this action.')
   }
 });
 
@@ -129,13 +132,17 @@ app.delete('/urls/:id', (req, res) => {
     delete urlDatabase[req.params.id];
     res.redirect('/urls');
   } else {
-    res.send('Invalid credition for this action.')
+    res.send('Invalid creditials for this action.')
   }
 });
 
 app.get('/u/:id', (req, res) => {
-  const URL = urlDatabase[req.params.id]['longURL']
-  res.redirect(URL);
+  if (urlDatabase[req.params.id]) {
+    const URL = urlDatabase[req.params.id]['longURL']
+    res.redirect(URL);
+  } else {
+    res.send('Invalid URL');
+  }
 });
 
 app.get('/hello', (req, res) => {
