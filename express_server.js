@@ -77,6 +77,22 @@ app.post('/logout', (req, res) => {
   res.redirect('/login');
 });
 
+app.get('/urls.json', (req, res) => {
+  res.json(urlDatabase);
+});
+
+// 'Home' page
+app.get('/urls', (req, res) => {
+  if (!req.session.user_id) {
+    res.send('Cannot access this page. Please Login');
+  } else {
+    const validURLs = urlsForUser(req.session.user_id, urlDatabase);
+    const templateVars = { urls: validURLs, user: users[req.session.user_id] };
+    res.render('urls_index', templateVars);
+  }
+});
+
+// Creating a new URL
 app.post('/urls', (req, res) => {
   if (!req.session.user_id) {
     res.send('Cannot perform this action. Please Login');
@@ -91,20 +107,6 @@ app.post('/urls', (req, res) => {
     };
     res.redirect(`/urls/${tinyURL}`);
   }
-});
-
-app.get('/urls', (req, res) => {
-  if (!req.session.user_id) {
-    res.send('Cannot access this page. Please Login');
-  } else {
-    const validURLs = urlsForUser(req.session.user_id, urlDatabase);
-    const templateVars = { urls: validURLs, user: users[req.session.user_id] };
-    res.render('urls_index', templateVars);
-  }
-});
-
-app.get('/urls.json', (req, res) => {
-  res.json(urlDatabase);
 });
 
 app.get('/urls/new', (req, res) => {
@@ -129,28 +131,40 @@ app.get('/urls/:id', (req, res) => {
   return res.send('Unable to access URL');
 });
 
+
+// Edit the longURL
 app.put('/urls/:id', (req, res) => {
-  if (urlDatabase[req.params.id].userID === users[req.session.user_id].id) {
+  if (!req.session.user_id) {
+    res.send('Cannot perform this action. Please Login')
+  } else if (urlDatabase[req.params.id].userID === users[req.session.user_id].id) {
     const newLongURL = req.body.newLongURL;
     urlDatabase[req.params.id]['longURL'] = newLongURL;
     res.redirect('/urls');
-  } else {
+  } else if (urlDatabase[req.params.id].userID !== users[req.session.user_id].id) {
     res.send('Invalid creditials for this action.');
+  } else {
+    res.send('Invalid URL')
   }
 });
 
 app.delete('/urls/:id', (req, res) => {
-  if (urlDatabase[req.params.id].userID === users[req.session.user_id].id) {
+  if (!req.session.user_id) {
+    res.send('Cannot perform this action. Please Login')
+  } else if (urlDatabase[req.params.id].userID === users[req.session.user_id].id) {
     delete urlDatabase[req.params.id];
     res.redirect('/urls');
-  } else {
+  } else if (urlDatabase[req.params.id].userID !== users[req.session.user_id].id) {
     res.send('Invalid creditials for this action.');
+  } else {
+    res.send('Invalid URL')
   }
 });
 
+// Redirect to actual website
 app.get('/u/:id', (req, res) => {
+  // Updating views and unique views(using cookie-parser for unique)
   if (urlDatabase[req.params.id]) {
-    urlDatabase[req.params.id]['views']++;
+    urlDatabase[req.params.id]['views']++; 
     if (!req.cookies.viewer) {
       res.cookie('viewer', getTiny());
       urlDatabase[req.params.id]['uniqueViews']++;
