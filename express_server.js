@@ -1,34 +1,42 @@
+// Setting up imports, all dependecies and helper functions
 const express = require('express');
-const app = express();
-app.set('view engine', 'ejs');
-app.use(express.urlencoded({ extended: true}));
 const methodOverride = require('method-override');
-app.use(methodOverride('_method'));
 const cookies = require('cookie-parser');
-app.use(cookies());
 const cookieSession = require('cookie-session');
+const bcrypt = require('bcryptjs');
+const { getTiny, urlsForUser, getUserByEmail } = require('./helpers');
+
+// Setting up middleware
+const app = express();
+app.use(express.urlencoded({ extended: true}));
+app.set('view engine', 'ejs');
+app.use(methodOverride('_method'));
+app.use(cookies());
 app.use(cookieSession({
   name: 'session',
   keys: ['uBjq2k4', 'k23is3N']
 }));
-const bcrypt = require('bcryptjs');
-const { getTiny, urlsForUser, getUserByEmail } = require('./helpers');
+
+// Setting constants and database objects for server
 const PORT = 8080;
 const urlDatabase = {};
 const users = {};
 
+// Endpoints:
 app.get('/', (req, res) => {
   if (req.session.user_id) {
     res.redirect('/urls');
+  } else {
+    res.redirect('/login');
   }
-  res.redirect('/login');
 });
 
 app.get('/register', (req, res) => {
   if (req.session.user_id) {
     res.redirect('/urls');
+  } else {
+    res.render('registration');
   }
-  res.render('registration');
 });
 
 app.post('/register', (req, res) => {
@@ -50,8 +58,9 @@ app.post('/register', (req, res) => {
 app.get('/login', (req, res) => {
   if (req.session.user_id) {
     res.redirect('/urls');
+  } else {
+    res.render('login');
   }
-  res.render('login');
 });
 
 app.post('/login', (req, res) => {
@@ -60,7 +69,6 @@ app.post('/login', (req, res) => {
     req.session.user_id = users[user].id;
     res.redirect('/urls');
   }
-  res.statusCode = 403;
   res.send('Invalied Credentials');
 });
 
@@ -72,25 +80,27 @@ app.post('/logout', (req, res) => {
 app.post('/urls', (req, res) => {
   if (!req.session.user_id) {
     res.send('Cannot perform this action. Please Login');
+  } else {
+    let tinyURL = getTiny(urlDatabase);
+    urlDatabase[tinyURL] = {
+      longURL: req.body.longURL,
+      userID: req.session.user_id,
+      dateCreated: new Date().toUTCString(),
+      views: 0,
+      uniqueViews: 0
+    };
+    res.redirect(`/urls/${tinyURL}`);
   }
-  let tinyURL = getTiny(urlDatabase);
-  urlDatabase[tinyURL] = {
-    longURL: req.body.longURL,
-    userID: req.session.user_id,
-    dateCreated: new Date().toUTCString(),
-    views: 0,
-    uniqueViews: 0
-  };
-  res.redirect(`/urls/${tinyURL}`);
 });
 
 app.get('/urls', (req, res) => {
   if (!req.session.user_id) {
     res.send('Cannot access this page. Please Login');
+  } else {
+    const validURLs = urlsForUser(req.session.user_id, urlDatabase);
+    const templateVars = { urls: validURLs, user: users[req.session.user_id] };
+    res.render('urls_index', templateVars);
   }
-  const validURLs = urlsForUser(req.session.user_id, urlDatabase);
-  const templateVars = { urls: validURLs, user: users[req.session.user_id] };
-  res.render('urls_index', templateVars);
 });
 
 app.get('/urls.json', (req, res) => {
@@ -100,9 +110,10 @@ app.get('/urls.json', (req, res) => {
 app.get('/urls/new', (req, res) => {
   if (!req.session.user_id) {
     res.redirect('/login');
+  } else {
+    const templateVars = { user: users[req.session.user_id] };
+    res.render('urls_new', templateVars);
   }
-  const templateVars = { user: users[req.session.user_id] };
-  res.render('urls_new', templateVars);
 });
 
 app.get('/urls/:id', (req, res) => {
@@ -112,10 +123,10 @@ app.get('/urls/:id', (req, res) => {
   for (const item in urlDatabase) {
     if (urlDatabase[item]['userID'] === req.session.user_id) {
       const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id]['longURL'], newLongURL: '', user: users[req.session.user_id] };
-      res.render('urls_show', templateVars);
+      return res.render('urls_show', templateVars);
     }
   }
-  res.send('Unable to access URL');
+  return res.send('Unable to access URL');
 });
 
 app.put('/urls/:id', (req, res) => {
@@ -149,10 +160,6 @@ app.get('/u/:id', (req, res) => {
   } else {
     res.send('Invalid URL');
   }
-});
-
-app.get('/hello', (req, res) => {
-  res.send('<html><body>Hello World!<b>World</></html>\n');
 });
 
 app.listen(PORT, () => {
